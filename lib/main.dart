@@ -1,26 +1,60 @@
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
 
-class MovingCircleFromCenterWidget extends StatefulWidget {
+class MovingCircleWidget extends StatefulWidget {
   @override
-  _MovingCircleFromCenterWidgetState createState() =>
-      _MovingCircleFromCenterWidgetState();
+  _MovingCircleWidgetState createState() => _MovingCircleWidgetState();
 }
 
-class _MovingCircleFromCenterWidgetState
-    extends State<MovingCircleFromCenterWidget> with TickerProviderStateMixin {
+class _MovingCircleWidgetState extends State<MovingCircleWidget>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<Offset> _animation;
-  List<Offset> _trianglePoints = [];
 
   @override
   void initState() {
     super.initState();
 
+    // Khởi tạo AnimationController
     _controller = AnimationController(
       vsync: this,
-      duration: Duration(seconds: 6), // Thời gian để hoàn thành một chu kỳ
+      duration: Duration(seconds: 6), // Thời gian cho một chu kỳ chuyển động
     )..repeat(); // Lặp lại chuyển động
+
+    // Xác định kích thước màn hình sau khi layout được xây dựng
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final screenSize = MediaQuery.of(context).size;
+
+      // Xác định các điểm di chuyển trên màn hình
+      Offset center = Offset(screenSize.width / 2, screenSize.height / 2);
+      double moveDistanceX = 100; // Khoảng cách di chuyển theo trục X
+      double moveDistanceY = 100; // Khoảng cách di chuyển theo trục Y
+
+      // Các đỉnh của hình tam giác
+      Offset pointA = Offset(center.dx - moveDistanceX, center.dy); // Di chuyển sang trái
+      Offset pointB = Offset(center.dx - moveDistanceX, center.dy - moveDistanceY); // Di chuyển chéo lên
+      Offset pointC = Offset(center.dx, center.dy - moveDistanceY); // Di chuyển thẳng xuống
+      Offset pointD = Offset(center.dx, center.dy); // Về vị trí giữa
+
+      // Tạo TweenSequence để hình tròn di chuyển qua các điểm
+      _animation = TweenSequence<Offset>([
+        TweenSequenceItem(
+          tween: Tween(begin: center, end: pointA).chain(CurveTween(curve: Curves.easeInOut)),
+          weight: 1,
+        ),
+        TweenSequenceItem(
+          tween: Tween(begin: pointA, end: pointB).chain(CurveTween(curve: Curves.easeInOut)),
+          weight: 1,
+        ),
+        TweenSequenceItem(
+          tween: Tween(begin: pointB, end: pointC).chain(CurveTween(curve: Curves.easeInOut)),
+          weight: 1,
+        ),
+        TweenSequenceItem(
+          tween: Tween(begin: pointC, end: pointD).chain(CurveTween(curve: Curves.easeInOut)),
+          weight: 1,
+        ),
+      ]).animate(_controller);
+    });
   }
 
   @override
@@ -31,51 +65,20 @@ class _MovingCircleFromCenterWidgetState
 
   @override
   Widget build(BuildContext context) {
-    // Lấy kích thước của màn hình
     final screenSize = MediaQuery.of(context).size;
-
-    // Xác định vị trí bắt đầu và 3 đỉnh của tam giác
-    Offset center = Offset(screenSize.width / 2, screenSize.height / 2);
-    Offset topLeft = Offset(screenSize.width / 4, screenSize.height / 4);
-    Offset topRight = Offset(3 * screenSize.width / 4, screenSize.height / 4);
-    Offset bottom = Offset(screenSize.width / 2, 3 * screenSize.height / 4);
-
-    // Sử dụng Tween để chuyển động qua các điểm
-    _animation = TweenSequence<Offset>([
-      TweenSequenceItem(
-        tween: Tween(begin: center, end: topLeft)
-            .chain(CurveTween(curve: Curves.easeInOut)),
-        weight: 1,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: topLeft, end: topRight)
-            .chain(CurveTween(curve: Curves.easeInOut)),
-        weight: 1,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: topRight, end: bottom)
-            .chain(CurveTween(curve: Curves.easeInOut)),
-        weight: 1,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: bottom, end: center)
-            .chain(CurveTween(curve: Curves.easeInOut)),
-        weight: 1,
-      ),
-    ]).animate(_controller);
 
     return Scaffold(
       body: Center(
         child: Stack(
           children: [
-            // Hình ảnh ở dưới (có thể thay thế bằng ảnh thực tế của bạn)
+            // Nền trắng với hình ảnh
             Image.asset(
-              'assets/image/background_image.png',
+              'assets/image/img_bgr_map.jpeg', // Thay bằng URL hình ảnh của bạn
               width: screenSize.width,
               height: screenSize.height,
               fit: BoxFit.cover,
             ),
-            // Nền trắng và lỗ tròn di chuyển theo tam giác
+            // Vẽ lỗ tròn di chuyển
             Positioned.fill(
               child: AnimatedBuilder(
                 animation: _animation,
@@ -85,7 +88,7 @@ class _MovingCircleFromCenterWidgetState
                     child: Container(
                       width: screenSize.width,
                       height: screenSize.height,
-                      color: Colors.transparent, // Nền trong suốt
+                      color: Colors.transparent,
                     ),
                   );
                 },
@@ -98,7 +101,7 @@ class _MovingCircleFromCenterWidgetState
   }
 }
 
-// CustomPainter để vẽ lỗ tròn di chuyển theo tam giác
+// CustomPainter để vẽ lỗ tròn di chuyển theo các điểm
 class CircularHolePainter extends CustomPainter {
   final Offset holePosition;
   final double holeRadius;
@@ -110,9 +113,8 @@ class CircularHolePainter extends CustomPainter {
     Paint paint = Paint()..color = Colors.white;
     Rect rect = Rect.fromLTWH(0, 0, size.width, size.height);
 
-    // Vẽ nền trắng
+    // Vẽ nền trắng và tạo lỗ tròn tại vị trí hiện tại của hình tròn
     Path path = Path()..addRect(rect);
-    // Tạo lỗ tròn tại vị trí hiện tại của hình tròn
     path.addOval(Rect.fromCircle(center: holePosition, radius: holeRadius));
     path.fillType = PathFillType.evenOdd;
     canvas.drawPath(path, paint);
@@ -120,11 +122,10 @@ class CircularHolePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CircularHolePainter oldDelegate) {
-    return oldDelegate.holePosition != holePosition ||
-        oldDelegate.holeRadius != holeRadius;
+    return oldDelegate.holePosition != holePosition || oldDelegate.holeRadius != holeRadius;
   }
 }
 
 void main() {
-  runApp(MaterialApp(home: MovingCircleFromCenterWidget()));
+  runApp(MaterialApp(home: MovingCircleWidget()));
 }
