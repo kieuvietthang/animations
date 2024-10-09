@@ -84,6 +84,7 @@ flutter:
   #     fonts:
   assets:
     - assets/image/
+    - assets/icon/
   #       - asset: fonts/TrajanPro.ttf
   #       - asset: fonts/TrajanPro_Bold.ttf
   #         weight: 700
