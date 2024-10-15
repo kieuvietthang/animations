@@ -8,8 +8,8 @@ class MovingCircleWidget extends StatefulWidget {
 
 class _MovingCircleWidgetState extends State<MovingCircleWidget>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<Offset> _animation;
+   late AnimationController _controller;
+   late Animation<Offset> _animation;
 
   bool check = false;
 
@@ -20,10 +20,9 @@ class _MovingCircleWidgetState extends State<MovingCircleWidget>
     // Khởi tạo AnimationController
     _controller = AnimationController(
       vsync: this,
-      duration: Duration(seconds: 6), // Thời gian cho một chu kỳ chuyển động
-    )..repeat(); // Lặp lại chuyển động
+      duration: Duration(seconds: 6),
+    )..repeat();
 
-    // Xác định kích thước màn hình sau khi layout được xây dựng
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final screenSize = MediaQuery.of(context).size;
 
@@ -69,7 +68,7 @@ class _MovingCircleWidgetState extends State<MovingCircleWidget>
       setState(() {
         check = true;
       });
-      Future.delayed(Duration(seconds: 2), () {
+      Future.delayed(const Duration(seconds: 2), () {
         Navigator.push(
             context, MaterialPageRoute(builder: (context) => HomePage()));
       });
