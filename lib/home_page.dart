@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
 import 'package:untitled6/custom_poly_line.dart';
+import 'package:untitled6/custom_sound.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,21 +16,31 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage>
+    with SingleTickerProviderStateMixin {
   bool _isVisible = false;
   bool _isSelected = false;
   bool _isDiscover = false;
   bool _isDiscover1 = false;
   bool _isDiscover2 = false;
+  bool _isDiscover3 = false;
   bool isAnimation = false;
   double progress = 0.0;
   late Timer timer;
   bool isBVisible = false;
   bool isADimmed = false;
   bool isMap = false;
-
+  double secondProgress = 0.0;
+  double thirdProgress = 0.0; // Progress cho đoạn từ B đến C
+  bool isCVisible = false;
+  bool startDrawingBC = false; // Hiển thị điểm C
   final Offset startPoint = Offset(50, 650);
   final Offset endPoint = Offset(300, 450);
+  final Offset pointC = Offset(200, 450);
+  late AnimationController _controller;
+  List<double> amplitudes = [];
+
+  bool checkSound = false;
 
   @override
   void initState() {
@@ -64,13 +76,24 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   Positioned.fill(
                     child: CustomPaint(
-                      size: const Size(300, 500),
                       painter: DashedLinePainter(
                         startPoint: startPoint,
                         endPoint: endPoint,
                         progress: progress,
+                        secondStartPoint: endPoint,
+                        secondEndPoint: pointC,
+                        secondProgress: secondProgress,
                       ),
                     ),
+                  ),
+                  HeartIcon(
+                    startPoint: startPoint,
+                    endPoint: endPoint,
+                    progress: progress,
+                    secondStartPoint: endPoint,
+                    secondEndPoint: pointC,
+                    secondProgress: secondProgress,
+                    amplitudes: amplitudes, sound: checkSound,
                   ),
                   Positioned(
                     left: startPoint.dx - 25,
@@ -276,7 +299,7 @@ class _HomePageState extends State<HomePage> {
                                       ),
                                       Positioned(
                                         top: 15,
-                                         right: 30,
+                                        right: 30,
                                         child: Text(
                                           '46p',
                                           style: TextStyle(
@@ -392,6 +415,8 @@ class _HomePageState extends State<HomePage> {
                         setState(() {
                           _isDiscover2 = false;
                           _isDiscover1 = false;
+                          startDrawingBC = true;
+                          _isDiscover3 = true;
                         });
                       },
                       child: Container(
@@ -403,6 +428,80 @@ class _HomePageState extends State<HomePage> {
                             borderRadius: BorderRadius.circular(5)),
                         child: const Text(
                           "Tiếp tục",
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  AnimatedPositioned(
+                    duration: const Duration(milliseconds: 500),
+                    curve: Curves.easeInOut,
+                    top: _isDiscover3 ? 60 : -200,
+                    left: 10,
+                    right: 10,
+                    child: Container(
+                      height: 70,
+                      width: screenSize.width,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFAD4DE5),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.only(left: 15, right: 15),
+                      child: const Text(
+                        'Con bạn không nhận điện thoại, hãy đảm bảo rằng mọi thứ đều ổn.',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.white),
+                        textAlign: TextAlign.justify,
+                      ),
+                    ),
+                  ),
+                  AnimatedPositioned(
+                    duration: const Duration(milliseconds: 500),
+                    curve: Curves.easeInOut,
+                    bottom: _isDiscover3 ? 30 : -100,
+                    left: 25,
+                    right: 25,
+                    child: GestureDetector(
+                      onTap: () {
+                        checkSound = true;
+                        _isDiscover3 = false;
+                        _controller = AnimationController(
+                          vsync: this,
+                          duration: const Duration(
+                              milliseconds:
+                                  500), // Tăng thời gian chạy chậm hơn
+                        )
+                          ..addListener(() {
+                            setState(() {
+                              // Cập nhật biên độ sóng âm theo chu kỳ
+                              if (_controller.value % 0.2 < 0.01) {
+                                // Cập nhật mỗi 20% tiến trình
+                                amplitudes = List.generate(
+                                    20, (index) => Random().nextDouble());
+                              }
+                              Future.delayed(Duration(seconds: 3),(){
+                                checkSound = false;
+                              });
+                            });
+                          })
+                          ..repeat();
+                      },
+                      child: Container(
+                        height: screenSize.height * 0.06,
+                        width: screenSize.width * 0.78,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                            color: Colors.blue,
+                            borderRadius: BorderRadius.circular(5)),
+                        child: const Text(
+                          "Lắng nghe âm thanh xung quanh",
                           style: TextStyle(
                             fontSize: 18,
                             color: Colors.white,
@@ -478,25 +577,55 @@ class _HomePageState extends State<HomePage> {
                           _isVisible = false;
                           isMap = true;
                           if (isMap == true) {
+                            // timer = Timer.periodic(Duration(milliseconds: 50),
+                            //     (timer) {
+                            //   setState(() {
+                            //     progress += 0.01; // Tăng dần độ dài đã vẽ
+                            //
+                            //     // Hiển thị điểm B khi vẽ được nửa đoạn
+                            //     if (progress >= 0.5 && !isBVisible) {
+                            //       isBVisible = true; // Hiện điểm B
+                            //     }
+                            //
+                            //     // Đổi màu điểm A sau khi điểm B hiển thị
+                            //     if (isBVisible) {
+                            //       isADimmed = true; // Đổi màu điểm A
+                            //     }
+                            //
+                            //     if (progress >= 1.0) {
+                            //       progress = 1.0; // Đặt lại giá trị progress
+                            //       timer.cancel();
+                            //       _isSelected = true;
+                            //     }
+                            //   });
+                            // });
                             timer = Timer.periodic(Duration(milliseconds: 50),
                                 (timer) {
                               setState(() {
-                                progress += 0.01; // Tăng dần độ dài đã vẽ
+                                // Vẽ đoạn từ A đến B
+                                if (progress < 1.0) {
+                                  progress += 0.01;
+                                } else {
+                                  // Khi vẽ đến điểm B, dừng lại và hiển thị điểm B
+                                  if (!isBVisible) {
+                                    isBVisible = true;
+                                    _isSelected = true;
+                                  }
 
-                                // Hiển thị điểm B khi vẽ được nửa đoạn
-                                if (progress >= 0.5 && !isBVisible) {
-                                  isBVisible = true; // Hiện điểm B
-                                }
+                                  if (isBVisible) {
+                                    isADimmed = true;
+                                  }
 
-                                // Đổi màu điểm A sau khi điểm B hiển thị
-                                if (isBVisible) {
-                                  isADimmed = true; // Đổi màu điểm A
-                                }
+                                  // Khi người dùng nhấn nút, tiếp tục vẽ đoạn từ B qua C
+                                  if (startDrawingBC && secondProgress < 1.0) {
+                                    secondProgress += 0.01;
+                                  }
 
-                                if (progress >= 1.0) {
-                                  progress = 1.0; // Đặt lại giá trị progress
-                                  timer.cancel();
-                                  _isSelected = true;
+                                  // Dừng timer khi cả hai đoạn đã vẽ xong
+                                  if (progress >= 1.0 &&
+                                      secondProgress >= 1.0) {
+                                    timer.cancel();
+                                  }
                                 }
                               });
                             });

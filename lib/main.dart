@@ -114,9 +114,9 @@ class _MovingCircleWidgetState extends State<MovingCircleWidget>
             ),
             Positioned(
               bottom: screenSize.height / 2.8,
-              left: screenSize.width / 2 - 70,
+              left: screenSize.width / 2 - 45,
               child: const Text(
-                "Findmykids",
+                "Tracker",
                 style: TextStyle(
                     fontSize: 28,
                     color: Colors.blue,
